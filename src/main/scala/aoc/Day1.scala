@@ -40,7 +40,7 @@ object Day1 {
       case Nil => 0L
     }
 
-  def main(args: Array[String]): Unit = {
+  def solution: Unit = {
     val parsedData = parse(data)
     println("Part1:" + getTotalDistance(sortPair(parsedData)))
     println("Part2:" + findSimilarityScore(toLists(parsedData)._1, toLists(parsedData)._2))
