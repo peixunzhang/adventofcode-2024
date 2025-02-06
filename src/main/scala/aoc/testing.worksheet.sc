@@ -1,9 +1,12 @@
-import aoc.Day2
-import aoc.Day1
-Day1.solution
+import aoc.Day3
+import aoc.Day3._
 
-Day2.data.map(Day2.increaseCheck(_))
-Day2.data.map(Day2.decreaseCheck(_))
-Day2.solution
 
-Day2.part2.checkIncreasing(List(1, 2, 7, 8, 9))
+toInstruction(instruction.findAllMatchIn(data).toList)
+
+val a: List[Instruction] = Nil
+val b = Enable
+val c = Disable
+
+val ab = a.::(b)
+ab :+ c
