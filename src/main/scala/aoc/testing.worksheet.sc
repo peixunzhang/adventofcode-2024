@@ -1,1 +1,4 @@
-import aoc.Day5._
+import aoc.Day6._
+
+println(parse(data).solvePart2())
+  
