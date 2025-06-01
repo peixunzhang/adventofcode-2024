@@ -147,17 +147,14 @@ object Day6 {
       val candidates = finishedMap.giveVisited()
       var n = 0
       candidates.count { case (r, c) =>
-        println(s"Evaluating blocker ${n += 1; n}/${candidates.length}")
-        set(r, c, Blocker).isCircle
+        println(s"Evaluating blocker ${n += 1; n }/${candidates.length}")
+        set(r, c, Blocker).isCircleMut()
       }
     }
 
     // cycle is detected (revisiting same position + direction)
     @tailrec
     def isCircle(): Boolean = {
-      println("\n\n")
-      println(this)
-
       val (nextX, nextY) = guardFacing match {
         case Up     => (guardX - 1, guardY)
         case RightG => (guardX, guardY + 1)
@@ -178,8 +175,74 @@ object Day6 {
           .isCircle
       }
     }
-  }
 
+    def isCircleMut(): Boolean = {
+      import scala.collection.mutable
+
+      sealed trait InternalItem {
+        def toItem: Item = this match {
+          case InternalItem.Blocker => Blocker
+          case InternalItem.Visited(_) => Visited
+          case InternalItem.Unvisited => Unvisited
+        }
+      }
+
+      object InternalItem {
+        case object Unvisited extends InternalItem
+        final case class Visited(directions: mutable.Set[Direction]) extends InternalItem
+        case object Blocker extends InternalItem
+
+        def fromItem(item: Item): InternalItem = 
+          item match {
+            case aoc.Day6.Visited => throw new IllegalArgumentException("no visited location expected")
+            case aoc.Day6.Unvisited => InternalItem.Unvisited
+            case aoc.Day6.Blocker => InternalItem.Blocker
+            case aoc.Day6.Guard(direction) => InternalItem.Visited(directions = mutable.HashSet(direction))
+          }
+      }
+
+      val mutableMap = this.value.map(_.map(InternalItem.fromItem).toArray).toArray
+
+      var result = Option.empty[Boolean]
+      var guardFacing = this.guardFacing
+      var guardX = this.guardX
+      var guardY = this.guardY
+
+      while (result.isEmpty) {
+        val (nextX, nextY) = guardFacing match {
+          case Up     => (guardX - 1, guardY)
+          case RightG => (guardX, guardY + 1)
+          case Down   => (guardX + 1, guardY)
+          case LeftG  => (guardX, guardY - 1)
+        }
+        if (!stillIn(nextX, nextY)) {
+          result = Some(false)
+        } else {
+          val locationContent = mutableMap(nextX)(nextY)
+          locationContent match {
+            case InternalItem.Blocker => {
+              guardFacing = guardFacing.turn
+            }
+            case InternalItem.Visited(directions) if directions.contains(guardFacing) => {
+              result = Some(true)
+            }
+            case InternalItem.Visited(directions)  => {
+              guardX = nextX
+              guardY = nextY
+              directions.add(guardFacing)
+            }
+            case InternalItem.Unvisited => {
+              guardX = nextX
+              guardY = nextY
+              mutableMap(nextX)(nextY) = InternalItem.Visited(mutable.HashSet(guardFacing))
+            }
+          }
+        }
+      }
+
+      result.get
+    }
+  }
 }
 
 object Day6Part2 {
