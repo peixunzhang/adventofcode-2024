@@ -4,9 +4,12 @@ import better.files.Resource
 import scala.collection.immutable
 
 object Day8 {
-  val example = Resource.getAsString("day8/example.txt")
-  val real = Resource.getAsString("day8/real.txt")
-  val fake = Resource.getAsString("day8/fake.txt")
+  def example = Resource.getAsString("day8/example.txt")
+  def real = Resource.getAsString("day8/real.txt")
+  def fake = Resource.getAsString("day8/fake.txt")
+
+  type Coordinate = (Int, Int)
+  type Vec = (Int, Int)
 
   def parse(str: String): Grid = {
     val raw = str.split("\n").toList.map(_.toList)
@@ -26,12 +29,12 @@ object Day8 {
   }
 
   final case class Grid(
-      antennas: List[(Char, Set[(Int, Int)])],
+      antennas: List[(Char, Set[Coordinate])],
       rowSize: Int,
       columnSize: Int
   )
 
-  def isAntinode(possibleAntinode: (Int, Int), antanne: Set[(Int, Int)]): Boolean = {
+  def isAntinode(possibleAntinode: Coordinate, antanne: Set[Coordinate]): Boolean = {
     antanne.exists { case (antennaRow, antennaCol) =>
       val distanceR = (antennaRow - possibleAntinode._1)
       val distanceC = (antennaCol - possibleAntinode._2)
@@ -40,7 +43,7 @@ object Day8 {
     }
   }
 
-  def findAntinodes(grid: Grid): List[(Char, (Int, Int))] = {
+  def findAntinodes(grid: Grid): List[(Char, Coordinate)] = {
     val maybeAnti =
       for {
         row <- 0 until grid.rowSize
@@ -53,7 +56,7 @@ object Day8 {
     maybeAnti.toList
   }
 
-  def findNonOverlappingAntinodes(grid: Grid): Set[(Int, Int)] = {    
+  def findNonOverlappingAntinodes(grid: Grid): Set[Coordinate] = {    
     val allAntinode = findAntinodes(grid)
 
     allAntinode.filterNot { case (antenna, cords) =>
@@ -61,6 +64,53 @@ object Day8 {
       overlapWithSameAntenna
     }.map(_._2).toSet
   }
+
+  // part2
+
+
+
+  def findVector(current: Coordinate, target: Coordinate): Vec = (target._1 - current._1, target._2 - current._2)
+
+  def allVectors(target: Coordinate, antannes: Set[Coordinate]): Set[Vec] = {
+    antannes.collect{ case next if (next!=target) => findVector(target, next)}
+  }
+
+  def addVector(vector: Vec, start: Coordinate): Coordinate = (vector._1+start._1, vector._2+ start._2)
+
+  def antinodes(vec: Vec, start: Coordinate, rowSize: Int, columnSize: Int): Set[Coordinate] = {
+    val result = scala.collection.mutable.Set.empty[Coordinate]
+    var current: Coordinate = start
+    var done = false
+    while (!done) {
+      val maybeAntinode = addVector(vec, current)
+      if (stillIn(maybeAntinode, rowSize, columnSize)) {
+        current = maybeAntinode
+        result += maybeAntinode
+      } else {
+        done = true
+      }
+    }
+    result.toSet
+  }
+
+  def stillIn(possibleAntinode: Coordinate, rowSize: Int, columnSize: Int): Boolean = 
+    possibleAntinode._1 >= 0 && possibleAntinode._1 < rowSize && possibleAntinode._2 >= 0 && possibleAntinode._2 < columnSize 
+
+  def collectAntinodes(antennas: Set[Coordinate], rowSize: Int, columnSize: Int): Set[Coordinate] = {
+    antennas.flatMap { antenna => 
+      val vectors = allVectors(antenna, antennas)
+      vectors.flatMap(antinodes(_, antenna, rowSize, columnSize))
+    }
+  }
+
+
+  def solvePart2(data: String): Int = {
+    val grid = parse(data)
+
+    grid.antennas.flatMap{ case (c, antennaGroup) => collectAntinodes(antennaGroup, grid.rowSize, grid.columnSize)}.toSet.size
+
+  }
+
 
   def solvePart1(data: String): Int = {
     findNonOverlappingAntinodes(parse(data)).size

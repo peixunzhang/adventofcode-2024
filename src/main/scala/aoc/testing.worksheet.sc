@@ -2,16 +2,17 @@ import aoc.Day8._
 
 parse(fake)
 solvePart1(real)
+solvePart2(real)
 
 
 
 
 
 
-val data =  parse(example)
-val annetant = data.antennas.map(_._2).flatten
+val data =  parse(fake)
+val annetant = data.antennas.map(_._2).flatten.toSet
 
-val ant = findAntinodes(data).map(_._2)
+val ant = collectAntinodes(annetant, data.rowSize, data.columnSize)
  for (i <- 0 until data.rowSize) {
   for (j <- 0 until data.columnSize) {
     val isAnntent = annetant.contains((i, j))
