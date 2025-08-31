@@ -1,2 +1,2 @@
 import aoc.Day9._
-val d = moveByBlock(parseP2("12311"))
+val d = checksumSumP2(moveByBlock(parseP2(real)))

@@ -9,16 +9,16 @@ object Day9 {
 
   sealed trait Disk
   final case class File(id: Int) extends Disk
-  case object FreeSpace extends Disk  
+  case object FreeSpace extends Disk
 
   def parse(input: String): Vector[Disk] = {
     val digits = input.map(num => num.asDigit).toList
-    val (_, result) = digits.zipWithIndex.foldLeft((0, Vector.empty[Disk])){
+    val (_, result) = digits.zipWithIndex.foldLeft((0, Vector.empty[Disk])) {
       case ((fileId, acc), (num, index)) =>
-        if (index%2 == 0) // file
-        {
-        (fileId+1, acc ++ Vector.fill(num)(File(fileId)))
-        } else {
+        if (index % 2 == 0) // file
+          {
+            (fileId + 1, acc ++ Vector.fill(num)(File(fileId)))
+          } else {
           (fileId, acc ++ Vector.fill(num)(FreeSpace))
         }
     }
@@ -26,126 +26,173 @@ object Day9 {
   }
 
   def moveDisk(disk: Vector[Disk]): Vector[Disk] = {
-    def go(disk: Vector[Disk], nextFree: Int, nextFile: Int): Vector[Disk]= {
-      if(nextFree == -1 || nextFile == -1 || nextFree > nextFile) {
+    def go(disk: Vector[Disk], nextFree: Int, nextFile: Int): Vector[Disk] = {
+      if (nextFree == -1 || nextFile == -1 || nextFree > nextFile) {
         disk
       } else {
-        val v2 = disk.updated(nextFree, disk(nextFile))
-        .updated(nextFile, FreeSpace)
+        val v2 = disk
+          .updated(nextFree, disk(nextFile))
+          .updated(nextFile, FreeSpace)
 
         val nextNextFree = v2.indexWhere(_ == FreeSpace, 0)
-        val nextNextFile = v2.lastIndexWhere{
+        val nextNextFile = v2.lastIndexWhere {
           case File(_) => true
-          case _ => false
+          case _       => false
         }
 
         go(v2, nextNextFree, nextNextFile)
-    }
+      }
     }
     val nextFree = disk.indexWhere(_ == FreeSpace, 0)
-    val nextFile = disk.lastIndexWhere{
+    val nextFile = disk.lastIndexWhere {
       case File(_) => true
-      case _ => false
+      case _       => false
     }
     go(disk, nextFree, nextFile)
   }
 
   def checksumSum(disks: Vector[Disk]): Long = {
     def checksum(disk: Disk, index: Int): Long = disk match {
-      case File(id) => id * index
+      case File(id)  => id * index
       case FreeSpace => 0
     }
     disks.zipWithIndex.map((checksum _).tupled).sum
   }
 
-
   def printDisk(disk: Vector[Disk]): Vector[String] = {
     def makeString(disk: Disk): String = disk match {
-      case File(id) => id.toString
+      case File(id)  => id.toString
       case FreeSpace => "."
     }
 
     disk.map(makeString)
   }
 
-
-
   def solvePart1(str: String): Long = {
     checksumSum(moveDisk(parse(str)))
   }
 
-
   sealed trait DiskP2
   final case class FileP2(id: Int, size: Int) extends DiskP2
-  final case class FreeSpaceP2(id: Int, size: Int) extends DiskP2
+  final case class FreeSpaceP2(size: Int) extends DiskP2
 
   def parseP2(input: String): Vector[DiskP2] = {
     val digits = input.map(num => num.asDigit).toList
-    val (_, _, result) = digits.zipWithIndex.foldLeft((0, 0, Vector.empty[DiskP2])){
-      case ((fileId, freespaceId, acc), (num, index)) =>
-        if (index%2 == 0) // file
-        {
-        (fileId+1, freespaceId, acc ++ Vector.fill(num)(FileP2(fileId, num)))
-        } else {
-          (fileId, freespaceId+1, acc ++ Vector.fill(num)(FreeSpaceP2(freespaceId, num)))
+    val (_, result) = digits.zipWithIndex.foldLeft((0, Vector.empty[DiskP2])) {
+      case ((fileId, acc), (num, index)) =>
+        if (index % 2 == 0) // file
+          {
+            (fileId + 1, acc :+ FileP2(fileId, num))
+          } else {
+          (fileId, acc :+ FreeSpaceP2(num))
         }
     }
     result
   }
 
-  def getBlockSize(disk: DiskP2): Int = disk match {
-    case FileP2(id, size) => size
-    case FreeSpaceP2(id, size) => size
+  def getFile(disks: Vector[DiskP2], index: Int): FileP2 = {
+    disks(index) match {
+      case file @ FileP2(_, _) => file
+      case _ => throw new IllegalArgumentException("Expected file but found freespace")
+    }
   }
 
-  def getId(disk: DiskP2): Int = disk match {
-    case FileP2(id, size) => id
-    case FreeSpaceP2(id, size) => id
+  def getFreeSpace(disks: Vector[DiskP2], index: Int): FreeSpaceP2 = {
+    disks(index) match {
+      case freeSpace @ FreeSpaceP2(_) => freeSpace
+      case _ => throw new IllegalArgumentException("Expected freespace but found file")
+    }
+  }
+
+  def printDiskP2(disk: Vector[DiskP2]): String = {
+    val builder = new StringBuilder()
+
+    disk.foreach {
+      case FileP2(id, size)  => builder.append(id.toString() * size)
+      case FreeSpaceP2(size) => builder.append("." * size)
+    }
+
+    builder.toString()
   }
 
   def moveByBlock(disks: Vector[DiskP2]): Vector[DiskP2] = {
-    def go(dsiks: Vector[DiskP2], nextFree: Int, nextFile: Int): Vector[DiskP2] = {
-      if (nextFree == -1 || nextFile == -1 || getId(disks(nextFile)) == 0) {
+    def go(
+        disks: Vector[DiskP2],
+        nextFileIndex: Int,
+    ): Vector[DiskP2] = {
+      if (nextFileIndex == -1) {
         disks
-      } else {
-        val nextFreeSize = getBlockSize(disks(nextFree))
-        val nextFileSize = getBlockSize(disks(nextFile))
-
-        if (nextFreeSize >= nextFileSize) {
-          val fileBlockForMove = Vector.fill(nextFileSize)(disks(nextFile))
-          val freeBlockForMove = Vector.fill(nextFileSize)(disks(nextFree))
-          val v2: Vector[DiskP2] = disks
-          .patch(nextFree, fileBlockForMove, nextFileSize)
-          .patch(nextFile - nextFileSize + 1, freeBlockForMove, nextFileSize)
-
-          val nextNextFree = v2.indexWhere( {
-            case FreeSpaceP2(_, _) => true
-            case _ => false
-          },  nextFree + nextFreeSize -1)
-
-          val nextNextFile = v2.lastIndexWhere({
-            case FileP2(_, _) => true
-            case _ => false
-          }, nextFile - nextFileSize+1)
-          print(v2, nextFree, nextFile, nextNextFree, nextNextFile)
-          go(v2, nextNextFree, nextNextFile)
-        } 
-        go(disks, nextFree, nextFile-nextFileSize)
       }
-      
+      else {
+        val file = getFile(disks, nextFileIndex)
+
+        val freeSpaceIndex = disks.indexWhere {
+          case FreeSpaceP2(freeSpaceSize) if freeSpaceSize >= file.size => true
+          case _ => false 
+        }
+
+        if (freeSpaceIndex == -1 || freeSpaceIndex >= nextFileIndex) {
+          // didn't find free space big enough for file, continue
+          val nextCandidate = disks.slice(0, nextFileIndex).lastIndexWhere {
+            case FileP2(_, _)   => true
+            case FreeSpaceP2(_) => false
+          }
+          go(disks, nextCandidate)
+        } else {
+          // found free space big enough for file, swap
+          val freeSpace = getFreeSpace(disks, freeSpaceIndex)
+
+          val remainingSpace = freeSpace.size - file.size
+          assert(remainingSpace >= 0)
+          if (remainingSpace == 0) {
+            val updatedDisks = disks
+              .updated(freeSpaceIndex, file)
+              .updated(nextFileIndex, FreeSpaceP2(file.size))
+
+            val nextCandidate = updatedDisks.slice(0, nextFileIndex - 1).lastIndexWhere {
+              case FileP2(_, _)   => true
+              case FreeSpaceP2(_) => false
+            }
+            go(updatedDisks, nextCandidate)
+          } else {
+            val updatedDisks = disks
+              .updated(nextFileIndex, FreeSpaceP2(file.size))
+              .patch(freeSpaceIndex, List(file, FreeSpaceP2(remainingSpace)), 1)
+
+            val nextCandidate = updatedDisks.slice(0, nextFileIndex).lastIndexWhere {
+              case FileP2(_, _)   => true
+              case FreeSpaceP2(_) => false
+            }
+            go(updatedDisks, nextCandidate)
+          }
+        }
       }
-      val nextFree = disks.indexWhere({
-            case FreeSpaceP2(_, _) => true
-            case _ => false
-          }, 0)
-          
-      val nextFile = disks.lastIndexWhere{
-        case FileP2(_, _) => true
-        case _ => false
     }
-    go(disks, nextFree, nextFile)
-    
+
+    val nextFile = disks.lastIndexWhere {
+      case FileP2(_, _)   => true
+      case FreeSpaceP2(_) => false
+    }
+    go(disks, nextFile)
+
   }
+
+  def checksumSumP2(disks: Vector[DiskP2]): Long = {
+    var checksum = 0L
+    var logicalIndex = 0L
+
+    disks.foreach {
+      case FreeSpaceP2(size) => logicalIndex += size
+      case FileP2(id, size) => {
+        val sum = (logicalIndex until (logicalIndex + size)).map(_ * id).sum
+        checksum += sum
+        logicalIndex += size
+      }
+    }
+
+    checksum
+  }
+
 
   def solvePart2(str: String) = moveByBlock(parseP2(str))
 }
