@@ -1,2 +1,2 @@
-import aoc.Day10._
-val ex = parse(real).countAllRating
+import aoc.Day11._
+val ex = solvePart1(real, 1)
