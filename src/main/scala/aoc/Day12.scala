@@ -75,7 +75,9 @@ object Day12 {
     override def toString() = all.map(_.map(p => if (p.visited) p.plant.toLower else p.plant).mkString).mkString("\n")
   }
 
-  def getPrice(subG: Set[Coordinate]): Long = {
+  // part1
+
+  def getPrice(subG: Set[Coordinate]): Int = {
     def getFour(co: Coordinate): Set[Coordinate] = {
       val (row, col) = co
       Set(
@@ -92,5 +94,30 @@ object Day12 {
     perimeter * subG.size
   }
 
-  def solvePart1(data: String): Long = parse(data).getAllArea().map(getPrice(_)).sum
+  // part2
+
+  final case class Edge(from: Coordinate, to: Coordinate) {
+    override def toString() = s"$from -> $to"
+  }
+
+  def getEdge(co: Coordinate): List[Edge] = {
+    val (row, col) = co
+      List(
+        Edge((row, col), (row, col+1)),    // top-side
+        Edge((row, col), (row+1, col)), // left-side
+        Edge((row, col+1), (row+1, col+1)),  // right-side
+        Edge((row+1, col), (row+1, col+1))   // bottom-side
+      )
+  }
+
+  def getAllEdges(area: Set[Coordinate]): List[Edge] = {
+    area.toList.flatMap(getEdge(_)).groupBy(identity).collect{case (edge, all) if all.size == 1 => edge}.toList
+  }
+
+  def mergeEdges(edges: List[Edge]): Int = ???
+
+  def countEdges(area: Set[Coordinate]): Int = ???
+
+  def solvePart1(data: String): Int = parse(data).getAllArea().map(getPrice(_)).sum
+  def solvePart2(data: String): Int = ???
 }
