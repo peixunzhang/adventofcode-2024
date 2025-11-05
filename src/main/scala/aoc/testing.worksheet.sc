@@ -1,6 +1,7 @@
 import aoc.Day12._
 val garden = parse(example)
-val current: Coordinate = (0, 0)
-val edge = getEdge(current)
-val area = garden.getAllArea().head
-val square = getAllEdges(area) 
+val area = garden.getAllArea()
+val edges = getEdges(area.head)
+// val edges = area.map(getEdges)
+val mer = mergeEdges(edges)
+val so = solvePart2(real)
